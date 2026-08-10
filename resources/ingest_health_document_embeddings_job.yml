@@ -16,7 +16,7 @@ resources:
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: "UTC"
-        pause_status: PAUSED  # flip to UNPAUSED once you've validated a manual run
+        pause_status: UNPAUSED  # Schedule is now active - runs daily at 6:00 AM UTC
 
       email_notifications:
         on_failure:
@@ -24,19 +24,10 @@ resources:
 
       max_concurrent_runs: 1
 
-      job_clusters:
-        - job_cluster_key: default_cluster
-          new_cluster:
-            spark_version: "15.4.x-scala2.12"
-            node_type_id: "i3.xlarge"
-            num_workers: 2
-            data_security_mode: SINGLE_USER
-
       tasks:
         - task_key: ingest_health_document_embeddings
-          job_cluster_key: default_cluster
           notebook_task:
-            notebook_path: ../notebooks/ingest_health_document_embeddings.py
+            notebook_path: ../notebooks/ingest_health_documents_embeddings.py
             base_parameters:
               documents_table_name: "health_documents"
               embeddings_table_name: "health_embeddings"

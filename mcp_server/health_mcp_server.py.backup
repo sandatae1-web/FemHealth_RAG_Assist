@@ -25,12 +25,11 @@ Run locally:
 import os
 import re
 import logging
-import uuid
 from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 from contextvars import ContextVar
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastmcp import FastMCP
 from sentence_transformers import SentenceTransformer
@@ -428,10 +427,10 @@ class InputValidator:
     @staticmethod
     def validate_notes(notes: str, max_length: int = 2000) -> Tuple[bool, Optional[str]]:
         """Validate research notes."""
-        if notes and not isinstance(notes, str):
+        if not isinstance(notes, str):
             return False, "Notes must be a string"
         
-        if notes and len(notes) > max_length:
+        if len(notes) > max_length:
             return False, f"Notes exceed maximum length of {max_length} characters"
         
         return True, None
@@ -463,7 +462,6 @@ class InputValidator:
             return False, f"page_size cannot exceed {max_value}"
         
         return True, None
-
 
 
 # Initialize FastMCP and guardrails
@@ -550,32 +548,15 @@ def search_health_studies(query: str, top_k: int = 5) -> dict:
         
         rows = lakebase.run_query(sql, (embedding_list, embedding_list, top_k))
         
-        # Log search to history table (WRITE operation)
+        # Log search to history table
         try:
-            search_id = str(uuid.uuid4())
-            result_count = len(rows)
-            timestamp = datetime.now(timezone.utc)
-            
-            logger.info(f"Attempting to log search history for user: {user_email}, query: '{query[:50]}...', results: {result_count}")
-            
             history_sql = f"""
-            INSERT INTO {HEALTH_SEARCH_HISTORY_TABLE} 
-                (search_id, user_id, search_query, search_type, result_count, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO {HEALTH_SEARCH_HISTORY_TABLE} (user_id, query, timestamp)
+            VALUES (%s, %s, %s)
             """
-            
-            rows_affected = lakebase.run_write(history_sql, (
-                search_id,
-                user_email,
-                query,
-                'semantic_vector',
-                result_count,
-                timestamp
-            ))
-            
-            logger.info(f"✅ Successfully logged search to history. Rows affected: {rows_affected}, search_id: {search_id}")
+            lakebase.run_write(history_sql, (user_email, query, datetime.utcnow()))
         except Exception as e:
-            logger.exception(f"❌ Failed to log search history for user {user_email}: {e}")
+            logger.warning(f"Failed to log search history: {e}")
         
         return {
             "status": "success",
@@ -594,409 +575,227 @@ def search_health_studies(query: str, top_k: int = 5) -> dict:
 
 
 @mcp.tool
-def get_study_details(nct_id: str) -> dict:
-    """
-    Get detailed information about a specific clinical study.
-    
-    Args:
-        nct_id: NCT ID (e.g., "NCT12345678").
-    
-    Returns:
-        A dict with study details or error.
-    """
-    try:
-        # Validate NCT ID
-        valid, error = _input_validator.validate_nct_id(nct_id)
-        if not valid:
-            return {"status": "error", "error": error}
-        
-        nct_id = nct_id.strip().upper()
-        
-        # Retrieve study from health_documents table
-        sql = f"""
-        SELECT 
-            nct_id,
-            title,
-            brief_summary,
-            detailed_description,
-            study_status,
-            conditions,
-            interventions,
-            eligibility_criteria,
-            start_date,
-            completion_date,
-            sponsor,
-            locations
-        FROM {HEALTH_DOCUMENTS_TABLE}
-        WHERE nct_id = %s
-        LIMIT 1
+def search_health_studies(
+        self,
+        condition: str = None,
+        status: str = None,
+        query: str = None,
+        page_size: int = 10
+    ) -> Dict[str, Any]:
         """
+        Search ClinicalTrials.gov for women's health studies.
         
-        rows = lakebase.run_query(sql, (nct_id,))
+        Args:
+            condition: Medical condition to search for
+            status: Study status (e.g., 'Recruiting', 'Completed')
+            query: Free-text search query
+            page_size: Number of results to return (max 50)
+            
+        Returns:
+            Dictionary with search results or error
+        """
+        # Build search query for guardrail check
+        search_text = f"{condition or ''} {query or ''}".strip()
         
-        if not rows:
+        # Validate through guardrails
+        result = self.guardrail.validate_health_request(search_text, "search_health_studies")
+        if not result.allowed:
             return {
-                "status": "not_found",
-                "error": f"Study {nct_id} not found in database"
+                "error": result.message,
+                "redirect": result.redirect_message,
+                "guardrail_category": result.category
             }
+        
+        # Validate page_size
+        valid, error = self.input_validator.validate_page_size(page_size)
+        if not valid:
+            return {"error": error}
+        
+        # TODO: Implement actual ClinicalTrials.gov API call
+        logger.info(f"Searching studies: condition={condition}, status={status}, page_size={page_size}")
         
         return {
             "status": "success",
-            "study": rows[0]
+            "studies": [],
+            "message": "Search functionality ready for API integration"
         }
     
-    except Exception as e:
-        logger.exception(f"Error in get_study_details: {e}")
-        return {
-            "status": "error",
-            "error": "Study details service is temporarily unavailable"
-        }
-
-
-@mcp.tool
-def search_health_knowledge(query: str, top_k: int = 5) -> dict:
-    """
-    Search the health knowledge base using semantic similarity.
-    
-    Searches at the chunk level for more granular results.
-    
-    Args:
-        query: Natural language query about health topics.
-        top_k: Number of chunks to return (default 5, max 20).
-    
-    Returns:
-        A dict with search results or error.
-    """
-    try:
-        # Validate query
-        valid, error = _input_validator.validate_query(query)
+    def get_study_details(self, nct_id: str) -> Dict[str, Any]:
+        """
+        Retrieve detailed information about a specific clinical study.
+        
+        Args:
+            nct_id: ClinicalTrials.gov NCT identifier
+            
+        Returns:
+            Dictionary with study details or error
+        """
+        # Validate NCT ID
+        valid, error = self.input_validator.validate_nct_id(nct_id)
         if not valid:
-            return {"status": "error", "error": error}
+            return {"error": error}
+        
+        # TODO: Implement actual study detail retrieval
+        logger.info(f"Fetching study details for {nct_id}")
+        
+        return {
+            "status": "success",
+            "nct_id": nct_id,
+            "message": "Study detail functionality ready for API integration"
+        }
+    
+    def search_health_knowledge(
+        self,
+        query: str,
+        top_k: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Search the health knowledge database using vector similarity.
+        
+        Args:
+            query: Natural language search query
+            top_k: Number of results to return (max 20)
+            
+        Returns:
+            Dictionary with search results or error
+        """
+        # Validate query
+        valid, error = self.input_validator.validate_query(query)
+        if not valid:
+            return {"error": error}
         
         # Validate through guardrails
-        result = _guardrail.validate_health_request(query, "search_health_knowledge")
+        result = self.guardrail.validate_health_request(query, "search_health_knowledge")
         if not result.allowed:
             return {
-                "status": "blocked",
                 "error": result.message,
                 "redirect": result.redirect_message,
-                "category": result.category
+                "guardrail_category": result.category
             }
         
         # Validate top_k
-        valid, error = _input_validator.validate_top_k(top_k, max_value=20)
+        valid, error = self.input_validator.validate_top_k(top_k)
         if not valid:
-            return {"status": "error", "error": error}
+            return {"error": error}
         
-        # Compute embedding for the query
-        model = get_embedding_model()
-        query_embedding = model.encode(query)
-        embedding_list = query_embedding.tolist()
-        
-        # Search chunk-level embeddings
-        sql = f"""
-        SELECT 
-            doc_id,
-            nct_id,
-            chunk_text,
-            chunk_index,
-            1 - (embedding <=> %s::vector) AS similarity
-        FROM {HEALTH_EMBEDDINGS_TABLE}
-        WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> %s::vector
-        LIMIT %s
-        """
-        
-        rows = lakebase.run_query(sql, (embedding_list, embedding_list, top_k))
+        # TODO: Implement actual vector search
+        logger.info(f"Searching knowledge base: query='{query[:50]}...', top_k={top_k}")
         
         return {
             "status": "success",
-            "count": len(rows),
-            "results": rows,
-            "model": EMBEDDING_MODEL
+            "results": [],
+            "message": "Vector search functionality ready for database integration"
         }
     
-    except Exception as e:
-        logger.exception(f"Error in search_health_knowledge: {e}")
-        return {
-            "status": "error",
-            "error": "Knowledge search service is temporarily unavailable"
-        }
-
-
-@mcp.tool
-def save_research_study(nct_id: str, notes: str = "") -> dict:
-    """
-    Save a clinical study to the user's research collection.
-    
-    This is a WRITE operation that mutates the Lakebase database.
-    Uses the authenticated user's email as the user_id.
-    
-    Args:
-        nct_id: NCT ID to save (e.g., "NCT12345678").
-        notes: Optional research notes.
-    
-    Returns:
-        A dict with success status or error.
-    """
-    try:
-        # Get the actual end user's email
-        user_email = _get_end_user_email()
+    def save_research_study(
+        self,
+        user_id: str,
+        nct_id: str,
+        notes: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Save a study to user's research collection.
+        
+        Args:
+            user_id: Authenticated user email
+            nct_id: ClinicalTrials.gov NCT identifier
+            notes: Optional user notes about the study
+            
+        Returns:
+            Dictionary with success status or error
+        """
+        # Validate user_id
+        valid, error = self.input_validator.validate_user_id(user_id)
+        if not valid:
+            return {"error": error}
         
         # Validate NCT ID
-        valid, error = _input_validator.validate_nct_id(nct_id)
+        valid, error = self.input_validator.validate_nct_id(nct_id)
         if not valid:
-            return {"status": "error", "error": error}
-        
-        nct_id = nct_id.strip().upper()
+            return {"error": error}
         
         # Validate notes
-        valid, error = _input_validator.validate_notes(notes or "")
+        valid, error = self.input_validator.validate_notes(notes)
         if not valid:
-            return {"status": "error", "error": error}
+            return {"error": error}
         
         # Check notes for sensitive content (privacy guardrail)
         if notes:
-            result = _guardrail.validate_health_request(notes, "save_research_study")
+            result = self.guardrail.validate_health_request(notes, "save_research_study")
             if not result.allowed:
                 return {
-                    "status": "blocked",
                     "error": "Notes contain potentially unsafe content",
                     "details": result.message
                 }
         
-        # Insert into research collection (WRITE to Lakebase)
-        sql = f"""
-        INSERT INTO {HEALTH_COLLECTION_TABLE} (user_id, nct_id, notes, saved_at)
-        VALUES (%s, %s, %s, %s)
-        ON CONFLICT (user_id, nct_id) 
-        DO UPDATE SET 
-            notes = EXCLUDED.notes,
-            saved_at = EXCLUDED.saved_at
-        """
-        
-        lakebase.run_write(sql, (user_email, nct_id, notes or "", datetime.utcnow()))
-        
-        logger.info(f"Saved study {nct_id} for user {user_email}")
+        # TODO: Implement actual save to database
+        logger.info(f"Saving study {nct_id} for user {user_id}")
         
         return {
             "status": "success",
-            "message": f"Study {nct_id} saved to research collection",
-            "user_email": user_email,
-            "nct_id": nct_id
+            "message": "Study saved to research collection"
         }
     
-    except Exception as e:
-        logger.exception(f"Error in save_research_study: {e}")
-        return {
-            "status": "error",
-            "error": "Unable to save study at this time"
-        }
-
-
-@mcp.tool
-def get_research_collection(page: int = 1, page_size: int = 20) -> dict:
-    """
-    Get the user's saved research collection.
-    
-    Uses the authenticated user's email for authorization.
-    
-    Args:
-        page: Page number (1-indexed, default 1).
-        page_size: Results per page (default 20, max 50).
-    
-    Returns:
-        A dict with collection and pagination info.
-    """
-    try:
-        # Get the actual end user's email
-        user_email = _get_end_user_email()
+    def get_research_collection(self, user_id: str) -> Dict[str, Any]:
+        """
+        Retrieve user's saved research collection.
         
-        # Validate page_size
-        valid, error = _input_validator.validate_page_size(page_size, max_value=50)
+        Args:
+            user_id: Authenticated user email
+            
+        Returns:
+            Dictionary with collection or error
+        """
+        # Validate user_id
+        valid, error = self.input_validator.validate_user_id(user_id)
         if not valid:
-            return {"status": "error", "error": error}
+            return {"error": error}
         
-        # Validate page
-        if page < 1:
-            return {"status": "error", "error": "Page must be at least 1"}
-        
-        offset = (page - 1) * page_size
-        
-        # Get total count
-        count_sql = f"""
-        SELECT COUNT(*) as total
-        FROM {HEALTH_COLLECTION_TABLE}
-        WHERE user_id = %s
-        """
-        
-        count_rows = lakebase.run_query(count_sql, (user_email,))
-        total = count_rows[0]['total'] if count_rows else 0
-        
-        # Get paginated results
-        sql = f"""
-        SELECT 
-            c.nct_id,
-            c.notes,
-            c.saved_at,
-            d.title,
-            d.brief_summary,
-            d.study_status,
-            d.conditions
-        FROM {HEALTH_COLLECTION_TABLE} c
-        LEFT JOIN {HEALTH_DOCUMENTS_TABLE} d ON c.nct_id = d.nct_id
-        WHERE c.user_id = %s
-        ORDER BY c.saved_at DESC
-        LIMIT %s OFFSET %s
-        """
-        
-        rows = lakebase.run_query(sql, (user_email, page_size, offset))
+        # TODO: Implement actual retrieval with authorization check
+        logger.info(f"Retrieving research collection for user {user_id}")
         
         return {
             "status": "success",
-            "user_email": user_email,
-            "collection": rows,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "has_more": (offset + len(rows)) < total
+            "collection": []
         }
     
-    except Exception as e:
-        logger.exception(f"Error in get_research_collection: {e}")
-        return {
-            "status": "error",
-            "error": "Unable to load collection at this time"
-        }
-
-
-@mcp.tool
-def remove_research_study(nct_id: str) -> dict:
-    """
-    Remove a study from the user's research collection.
-    
-    This is a WRITE operation that mutates the Lakebase database.
-    Uses the authenticated user's email for authorization.
-    
-    Args:
-        nct_id: NCT ID to remove (e.g., "NCT12345678").
-    
-    Returns:
-        A dict with success status or error.
-    """
-    try:
-        # Get the actual end user's email
-        user_email = _get_end_user_email()
+    def remove_research_study(
+        self,
+        user_id: str,
+        nct_id: str
+    ) -> Dict[str, Any]:
+        """
+        Remove a study from user's research collection.
+        
+        Args:
+            user_id: Authenticated user email
+            nct_id: ClinicalTrials.gov NCT identifier
+            
+        Returns:
+            Dictionary with success status or error
+        """
+        # Validate user_id
+        valid, error = self.input_validator.validate_user_id(user_id)
+        if not valid:
+            return {"error": error}
         
         # Validate NCT ID
-        valid, error = _input_validator.validate_nct_id(nct_id)
+        valid, error = self.input_validator.validate_nct_id(nct_id)
         if not valid:
-            return {"status": "error", "error": error}
+            return {"error": error}
         
-        nct_id = nct_id.strip().upper()
+        # TODO: Implement actual removal with authorization check
+        logger.info(f"Removing study {nct_id} from collection for user {user_id}")
         
-        # Delete from research collection (WRITE to Lakebase)
-        sql = f"""
-        DELETE FROM {HEALTH_COLLECTION_TABLE}
-        WHERE user_id = %s AND nct_id = %s
-        """
-        
-        rows_affected = lakebase.run_write(sql, (user_email, nct_id))
-        
-        if rows_affected > 0:
-            logger.info(f"Removed study {nct_id} from collection for user {user_email}")
-            return {
-                "status": "success",
-                "message": f"Study {nct_id} removed from research collection",
-                "user_email": user_email,
-                "nct_id": nct_id
-            }
-        else:
-            return {
-                "status": "not_found",
-                "message": f"Study {nct_id} was not in the collection",
-                "user_email": user_email,
-                "nct_id": nct_id
-            }
-    
-    except Exception as e:
-        logger.exception(f"Error in remove_research_study: {e}")
-        return {
-            "status": "error",
-            "error": "Unable to remove study at this time"
-        }
-
-
-@mcp.tool
-def get_current_user() -> dict:
-    """
-    Get information about the currently authenticated end user accessing the MCP server.
-    
-    When running as a Databricks App, this returns the actual end user making the
-    request (from X-Forwarded-User header), not the service principal running the app.
-
-    Returns:
-        A dict with user_name (email from X-Forwarded-User header), 
-        forwarded_email, and source ("request_header" or "service_principal").
-    """
-    try:
-        # First, try to get the end user from the request headers
-        headers = _request_context.get()
-        forwarded_user = headers.get('x-forwarded-user')
-        forwarded_email = headers.get('x-forwarded-email')
-        
-        if forwarded_user:
-            return {
-                "status": "success",
-                "user_name": forwarded_user,
-                "forwarded_email": forwarded_email,
-                "source": "request_header",
-            }
-        
-        # Fallback: return the service principal if headers aren't available
-        from databricks.sdk import WorkspaceClient
-        w = WorkspaceClient()
-        user = w.current_user.me()
         return {
             "status": "success",
-            "user_name": user.user_name,
-            "display_name": user.display_name,
-            "active": user.active,
-            "source": "service_principal",
-        }
-    except Exception as e:
-        logger.exception("Failed to get current user")
-        return {
-            "status": "error",
-            "message": f"Failed to get current user: {str(e)}",
+            "message": "Study removed from research collection"
         }
 
 
-# ============================================================================
-# Server Startup
-# ============================================================================
-
+# Testing
 if __name__ == "__main__":
-    import uvicorn
-    
-    # Add middleware to the FastMCP app
-    mcp.app.add_middleware(RequestContextMiddleware)
-    
-    host = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
-    port = int(os.getenv("FLASK_RUN_PORT", 8002))
-    
-    logger.info("✅ FemLens Health MCP Server initialized successfully")
-    logger.info(f"🚀 Starting server on http://{host}:{port}")
-    logger.info("📋 Available MCP tools:")
-    logger.info("   - search_health_studies(query, top_k)")
-    logger.info("   - get_study_details(nct_id)")
-    logger.info("   - search_health_knowledge(query, top_k)")
-    logger.info("   - save_research_study(nct_id, notes) [WRITE]")
-    logger.info("   - get_research_collection(page, page_size)")
-    logger.info("   - remove_research_study(nct_id) [WRITE]")
-    logger.info("   - get_current_user()")
-    logger.info("🛡️  Guardrail categories: Emergency, Self-harm, Drug Misuse, Medication Safety,")
-    logger.info("   Diagnosis, Pregnancy Safety, Eating Disorder, Prompt Injection")
-    
-    uvicorn.run(mcp.app, host=host, port=port)
-
+    tools = FemLensHealthTools()
+    print("✅ FemLens Health MCP Server initialized successfully")
+    print("\nGuardrail categories: Emergency, Self-harm, Drug Misuse, Medication Safety,")
+    print("Diagnosis, Pregnancy Safety, Eating Disorder, Prompt Injection")
