@@ -248,3 +248,86 @@ class HealthClient:
         """
         response = self.get("/studies/metadata")
         return response.get("fields", [])
+
+    def get_study_details(self, nct_id: str) -> dict | None:
+        """
+        Fetch detailed information for a single study by NCT ID.
+        
+        This is a convenience wrapper around get_study() that formats
+        the response for the FemLens app frontend.
+        
+        Args:
+            nct_id: NCT ID (e.g., "NCT12345678")
+        
+        Returns:
+            Formatted study dict or None if not found
+        """
+        try:
+            # Request comprehensive fields
+            fields = [
+                "NCTId",
+                "BriefTitle",
+                "OfficialTitle",
+                "BriefSummary",
+                "DetailedDescription",
+                "Condition",
+                "OverallStatus",
+                "Sex",
+                "MinimumAge",
+                "MaximumAge",
+                "LeadSponsorName",
+                "LocationCity",
+                "LocationState",
+                "LocationCountry",
+                "StudyFirstPostDate",
+                "LastUpdatePostDate",
+                "Phase",
+                "EnrollmentCount",
+                "StudyType",
+            ]
+            
+            response = self.get_study(nct_id, fields=fields)
+            
+            # The API returns a single study dict
+            if not response:
+                return None
+            
+            # Extract protocol section (where most data lives)
+            protocol = response.get("protocolSection", {})
+            identification = protocol.get("identificationModule", {})
+            description = protocol.get("descriptionModule", {})
+            status = protocol.get("statusModule", {})
+            sponsor = protocol.get("sponsorCollaboratorsModule", {})
+            eligibility = protocol.get("eligibilityModule", {})
+            design = protocol.get("designModule", {})
+            contacts = protocol.get("contactsLocationsModule", {})
+            
+            # Format for frontend
+            return {
+                "nct_id": identification.get("nctId", nct_id),
+                "title": identification.get("briefTitle", ""),
+                "official_title": identification.get("officialTitle", ""),
+                "summary": description.get("briefSummary", ""),
+                "detailed_description": description.get("detailedDescription", ""),
+                "conditions": identification.get("conditions", []),
+                "status": status.get("overallStatus", ""),
+                "sex": eligibility.get("sex", ""),
+                "minimum_age": eligibility.get("minimumAge", ""),
+                "maximum_age": eligibility.get("maximumAge", ""),
+                "sponsor": sponsor.get("leadSponsor", {}).get("name", ""),
+                "phase": design.get("phases", []),
+                "enrollment": design.get("enrollmentInfo", {}).get("count"),
+                "study_type": design.get("studyType", ""),
+                "first_posted": status.get("studyFirstPostDateStruct", {}).get("date", ""),
+                "last_updated": status.get("lastUpdatePostDateStruct", {}).get("date", ""),
+                "locations": [
+                    f"{loc.get('city', '')}, {loc.get('state', '')} {loc.get('country', '')}"
+                    for loc in contacts.get("locations", [])
+                ],
+                "url": f"https://clinicaltrials.gov/study/{nct_id}"
+            }
+            
+        except Exception as e:
+            # Log but don't crash - return None to indicate study not found
+            return None
+

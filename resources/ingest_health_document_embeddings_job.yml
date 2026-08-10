@@ -1,0 +1,46 @@
+# Databricks Workflow that runs notebooks/ingest_health_document_embeddings.py on
+# a schedule. The notebook processes women's health documents from ClinicalTrials.gov,
+# chunks them, and generates vector embeddings for semantic search in the FemLens
+# Women's Health Research Companion.
+#
+# Deploy: databricks bundle deploy -t dev
+# Run once manually: databricks bundle run ingest_health_document_embeddings_job -t dev
+
+resources:
+  jobs:
+    ingest_health_document_embeddings_job:
+      name: "[${bundle.target}] Ingest Health Document Embeddings"
+
+      # Runs daily at 6:00 AM UTC to refresh health document embeddings.
+      # Adjust schedule based on data refresh requirements.
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED  # flip to UNPAUSED once you've validated a manual run
+
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      max_concurrent_runs: 1
+
+      job_clusters:
+        - job_cluster_key: default_cluster
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 2
+            data_security_mode: SINGLE_USER
+
+      tasks:
+        - task_key: ingest_health_document_embeddings
+          job_cluster_key: default_cluster
+          notebook_task:
+            notebook_path: ../notebooks/ingest_health_document_embeddings.py
+            base_parameters:
+              documents_table_name: "health_documents"
+              embeddings_table_name: "health_embeddings"
+              embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+              chunk_size: "800"
+              chunk_overlap: "100"
+              batch_size: "100"

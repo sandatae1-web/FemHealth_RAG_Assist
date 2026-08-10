@@ -2,268 +2,1322 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Massive Stock Watchlist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FemLens — Women's Health Research Companion</title>
   <style>
     :root {
-      --bg: #f4f6fb;
+      --bg: #F7F7FA;
       --card-bg: #ffffff;
       --border: #e4e7ee;
-      --text: #1f2430;
-      --muted: #6b7280;
-      --accent: #4f46e5;
-      --accent-hover: #4338ca;
-      --danger: #dc2626;
-      --danger-hover: #b91c1c;
-      --radius: 10px;
+      --text: #1f2937;
+      --text-secondary: #6b7280;
+      --muted: #9CA3AF;
+      
+      /* FemLens Brand Colors */
+      --primary: #6C4AB6;  /* Purple - primary brand */
+      --primary-hover: #5838A0;
+      --rose: #D95D8A;     /* Rose/Pink - women's health */
+      --blue: #3987C9;     /* Blue - research/knowledge */
+      --green: #2E9B68;    /* Green - recruiting/active */
+      --amber: #D99A2B;    /* Amber - knowledge/RAG */
+      
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --radius: 12px;
+      --recruiting: #2E9B68;
+      --completed: #6b7280;
+      --suspended: #D99A2B;
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      max-width: 640px;
-      margin: 48px auto;
-      padding: 0 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       color: var(--text);
       background: var(--bg);
+      line-height: 1.6;
     }
 
-    h1 {
-      font-size: 24px;
+    /* Layout */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: var(--card-bg);
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .main-content {
+      margin-left: 260px;
+      flex: 1;
+      padding: 32px;
+      max-width: 1200px;
+    }
+
+    /* Header */
+    .app-header {
+      margin-bottom: 32px;
+    }
+
+    .app-title {
+      font-size: 28px;
       font-weight: 700;
+      color: var(--accent);
       margin-bottom: 4px;
     }
 
-    .hint {
+    .app-subtitle {
+      font-size: 14px;
       color: var(--muted);
-      font-size: 13px;
-      margin-top: 4px;
-      line-height: 1.5;
+      margin-bottom: 8px;
     }
 
+    .app-tagline {
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 12px;
+    }
+
+    /* Navigation */
+    .nav-menu {
+      list-style: none;
+      margin-top: 32px;
+    }
+
+    .nav-item {
+      margin-bottom: 8px;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 12px 16px;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      background: var(--bg);
+    }
+
+    .nav-link.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .user-info {
+      margin-top: 32px;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Cards */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px;
-      margin-top: 24px;
+      margin-bottom: 24px;
       box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+    }
+
+    .card-header {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 20px;
     }
 
     label {
       display: block;
-      margin-top: 16px;
+      margin-bottom: 8px;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text);
     }
-    label:first-child { margin-top: 0; }
 
-    input[type="text"] {
+    textarea {
       width: 100%;
-      padding: 10px 12px;
-      margin-top: 6px;
+      padding: 12px 16px;
       border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 14px;
+      font-family: inherit;
       transition: border-color 0.15s ease;
-    }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+      resize: vertical;
+      min-height: 80px;
     }
 
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(108, 74, 182, 0.12);
+    }
+
+    /* Buttons */
     button {
-      margin-top: 18px;
-      padding: 10px 18px;
+      padding: 12px 24px;
       cursor: pointer;
       border: none;
       border-radius: 8px;
-      background: var(--accent);
+      background: var(--primary);
       color: #fff;
       font-size: 14px;
       font-weight: 600;
-      transition: background 0.15s ease;
+      transition: all 0.15s ease;
     }
-    button:hover { background: var(--accent-hover); }
-    button:active { transform: translateY(1px); }
 
-    #result {
-      margin-top: 16px;
-      white-space: pre-wrap;
-      background: #f6f6f6;
-      padding: 12px 14px;
-      border-radius: 8px;
-      min-height: 20px;
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Dashboard KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 24, 40, 0.1);
+    }
+
+    .kpi-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .kpi-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .kpi-primary { border-top: 3px solid var(--primary); }
+    .kpi-primary .kpi-value { color: var(--primary); }
+
+    .kpi-rose { border-top: 3px solid var(--rose); }
+    .kpi-rose .kpi-value { color: var(--rose); }
+
+    .kpi-blue { border-top: 3px solid var(--blue); }
+    .kpi-blue .kpi-value { color: var(--blue); }
+
+    .kpi-green { border-top: 3px solid var(--green); }
+    .kpi-green .kpi-value { color: var(--green); }
+
+    .kpi-amber { border-top: 3px solid var(--amber); }
+    .kpi-amber .kpi-value { color: var(--amber); }
+
+    /* Charts */
+    .chart-container {
+      position: relative;
+      height: 250px;
+      margin: 16px 0;
+    }
+
+    /* Research Journey */
+    .journey-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+
+    .journey-step {
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+      padding: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: relative;
+    }
+
+    .journey-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .journey-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .journey-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Interest bars */
+    .interest-item {
+      margin-bottom: 16px;
+    }
+
+    .interest-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .interest-bar-bg {
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .interest-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--rose));
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--danger-hover);
+    }
+
+    /* Study cards */
+    .study-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .study-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+    }
+
+    .study-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .study-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .study-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .study-meta-item {
       font-size: 13px;
       color: var(--muted);
     }
-    #result:empty { display: none; }
 
-    table {
-      width: 100%;
-      margin-top: 0;
-      border-collapse: collapse;
+    .study-nct {
+      font-weight: 600;
+      color: var(--accent);
     }
-    th, td {
-      text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--border);
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-recruiting {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--recruiting);
+    }
+
+    .status-completed {
+      background: rgba(107, 114, 128, 0.1);
+      color: var(--completed);
+    }
+
+    .status-suspended {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--suspended);
+    }
+
+    .study-summary {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .study-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .study-actions button {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Messages */
+    .message {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
       font-size: 14px;
     }
-    th {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      font-weight: 600;
-    }
-    tbody tr:hover { background: #fafbfe; }
-    tbody tr:last-child td { border-bottom: none; }
 
-    .empty-row td {
-      color: var(--muted);
-      text-align: center;
-      padding: 20px 8px;
-    }
-
-    .delete-btn {
-      margin-top: 0;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      background: transparent;
+    .message-error {
+      background: rgba(239, 68, 68, 0.1);
       color: var(--danger);
       border: 1px solid var(--danger);
     }
-    .delete-btn:hover { background: var(--danger); color: #fff; }
-    .delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .message-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+
+    .message-info {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--info);
+      border: 1px solid var(--info);
+    }
+
+    /* Response container */
+    .agent-response {
+      background: var(--bg);
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    /* Hide by default */
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 32px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
   </style>
 </head>
 <body>
-  <h1>Stock Watchlist</h1>
-  <p class="hint">Enter a single ticker symbol. This sends exactly ONE call to the Massive API to fetch the latest price, then adds it to your watchlist.</p>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="app-header">
+        <h1 class="app-title">FemLens</h1>
+        <div class="app-subtitle">Women's Health Research Companion</div>
+        <div class="app-tagline">Discover clinical research. Explore evidence. Organize your findings.</div>
+      </div>
 
-  <div class="card">
-    <form id="stock-form">
-      <label for="symbol">Ticker symbol</label>
-      <input type="text" id="symbol" name="symbol" placeholder="AAPL" required>
-      <button type="submit">Add to watchlist</button>
-    </form>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a class="nav-link active" data-page="dashboard">🏠 Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="companion">🔬 Research Companion</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="collection">💾 Research Collection</a>
+        </li>
+      </ul>
+    </div>
 
-    <div id="result"></div>
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Dashboard Page -->
+      <div id="dashboard-page" class="page active">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">Research Dashboard</h2>
+          <p style="color: var(--text-secondary); font-size: 14px;">Your women's health research insights at a glance</p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div id="kpi-grid" class="kpi-grid">
+          <!-- Dynamically loaded -->
+        </div>
+
+        <!-- Research Journey -->
+        <div class="card">
+          <div class="card-header">🛤️ Research Journey</div>
+          <div class="journey-container">
+            <div class="journey-step">
+              <div class="journey-icon">🔎</div>
+              <div class="journey-label">Search</div>
+            </div>
+            <div class="journey-step">
+              <div class="journey-icon">📚</div>
+              <div class="journey-label">Discover Studies</div>
+            </div>
+            <div class="journey-step">
+              <div class="journey-icon">🧠</div>
+              <div class="journey-label">Retrieve Evidence</div>
+            </div>
+            <div class="journey-step">
+              <div class="journey-icon">📝</div>
+              <div class="journey-label">Review Research</div>
+            </div>
+            <div class="journey-step">
+              <div class="journey-icon">💗</div>
+              <div class="journey-label">Save to Collection</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Research Interests -->
+        <div class="card">
+          <div class="card-header">🔬 Research Interests</div>
+          <div id="research-interests-container">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Clinical Trial Landscape -->
+        <div class="card">
+          <div class="card-header">🧬 Clinical Trial Landscape</div>
+          <div id="clinical-landscape-container">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Knowledge Base -->
+        <div class="card">
+          <div class="card-header">🧠 FemLens Knowledge Base</div>
+          <div id="knowledge-base-container">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">🕒 Recent Research Activity</div>
+          <div id="recent-activity-container">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Research Companion Page -->
+      <div id="companion-page" class="page">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">🔎 Ask FemLens</h2>
+          <p style="color: var(--text-secondary); font-size: 14px;">Search women's health research using natural language</p>
+        </div>
+
+        <div class="card" style="border: 2px solid var(--primary);">
+          <form id="research-form">
+            <div class="form-group">
+              <label for="question" style="font-size: 15px; color: var(--primary);">Research Question</label>
+              <textarea 
+                id="question" 
+                name="question" 
+                placeholder="Find recruiting menopause studies related to sleep problems..."
+                required
+                style="font-size: 15px; min-height: 100px;"
+              ></textarea>
+            </div>
+            <button type="submit" style="font-size: 15px; padding: 14px 28px;">🔎 Search Research</button>
+          </form>
+          <div id="message-container"></div>
+        </div>
+
+        <div id="results-container"></div>
+      </div>
+
+      <!-- Research Collection Page -->
+      <div id="collection-page" class="page">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">💗 My Research Collection</h2>
+          <p style="color: var(--text-secondary); font-size: 14px;">Your saved clinical studies and research notes</p>
+        </div>
+        <div class="card">
+          <div id="collection-container"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <table id="watchlist-table">
-      <thead>
-        <tr>
-          <th>Symbol</th>
-          <th>Email</th>
-          <th>Latest price</th>
-          <th>Updated</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="watchlist-body"></tbody>
-    </table>
+  <!-- Save Study Modal -->
+  <div id="save-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Save to Research Collection</div>
+      <form id="save-form">
+        <input type="hidden" id="save-nct-id" />
+        <div class="form-group">
+          <label for="save-notes">Research Notes (optional)</label>
+          <textarea 
+            id="save-notes" 
+            placeholder="Why is this study relevant to your research?"
+          ></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeSaveModal()">Cancel</button>
+          <button type="submit">Save Study</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Remove Confirmation Modal -->
+  <div id="remove-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Remove Study</div>
+      <p style="margin-bottom: 24px;">Are you sure you want to remove this study from your research collection?</p>
+      <input type="hidden" id="remove-nct-id" />
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeRemoveModal()">Cancel</button>
+        <button type="button" class="btn-danger" onclick="confirmRemove()">Remove</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    const form = document.getElementById("stock-form");
-    const resultEl = document.getElementById("result");
-    const watchlistBody = document.getElementById("watchlist-body");
+    // State
+    let currentPage = 'companion';
 
-    async function loadWatchlist() {
-      try {
-        const resp = await fetch("/watchlist");
-        const data = await resp.json();
-        if (!resp.ok) {
-          resultEl.textContent = "Error loading watchlist: " + (data.error || resp.statusText);
-          return;
-        }
-        watchlistBody.innerHTML = "";
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initNavigation();
+      setupForms();
+      loadDashboard();
+    });
 
-        if (!data.length) {
-          const emptyTr = document.createElement("tr");
-          emptyTr.className = "empty-row";
-          emptyTr.innerHTML = `<td colspan="5">Your watchlist is empty. Add a ticker above to get started.</td>`;
-          watchlistBody.appendChild(emptyTr);
-          return;
-        }
-
-        data.forEach((row) => {
-          const tr = document.createElement("tr");
-          const price = row.latest_price !== null && row.latest_price !== undefined
-            ? Number(row.latest_price).toFixed(2)
-            : "-";
-          const updated = row.updated_at ? new Date(row.updated_at).toLocaleString() : "-";
-          tr.innerHTML = `
-            <td>${row.symbol}</td>
-            <td>${row.email || "-"}</td>
-            <td>${price}</td>
-            <td>${updated}</td>
-            <td><button type="button" class="delete-btn" data-symbol="${row.symbol}">Remove</button></td>
-          `;
-          watchlistBody.appendChild(tr);
+    // Navigation
+    function initNavigation() {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const page = link.dataset.page;
+          switchPage(page);
         });
-      } catch (err) {
-        resultEl.textContent = "Failed to load watchlist: " + err;
+      });
+    }
+
+    function switchPage(page) {
+      currentPage = page;
+      
+      // Update nav
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+      });
+      document.querySelector(`[data-page="${page}"]`).classList.add('active');
+      
+      // Update pages
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(`${page}-page`).classList.add('active');
+      
+      // Load data if needed
+      if (page === 'collection') {
+        loadResearchCollection();
+      } else if (page === 'dashboard') {
+        loadDashboard();
       }
     }
 
-    form.addEventListener("submit", async (e) => {
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const response = await fetch('/api/dashboard');
+        const data = await response.json();
+        
+        if (!response.ok) {
+          console.error('Dashboard error:', data.error);
+          return;
+        }
+        
+        renderKPIs(data.kpis || {});
+        renderResearchInterests(data.research_interests || []);
+        renderClinicalLandscape(data.clinical_trial_landscape || {});
+        renderKnowledgeBase(data.knowledge_base || {});
+        renderRecentActivity(data.recent_activity || []);
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      }
+    }
+
+    function renderKPIs(kpis) {
+      const container = document.getElementById('kpi-grid');
+      
+      container.innerHTML = `
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-icon">📚</div>
+          <div class="kpi-value">${kpis.knowledge_documents || 0}</div>
+          <div class="kpi-label">Knowledge Documents</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-icon">🟢</div>
+          <div class="kpi-value">${kpis.recruiting_studies || 0}</div>
+          <div class="kpi-label">Recruiting Studies</div>
+        </div>
+        <div class="kpi-card kpi-rose">
+          <div class="kpi-icon">💗</div>
+          <div class="kpi-value">${kpis.saved_studies || 0}</div>
+          <div class="kpi-label">Saved Studies</div>
+        </div>
+      `;
+    }
+
+    function renderResearchInterests(interests) {
+      const container = document.getElementById('research-interests-container');
+      
+      if (interests.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 40px;">No research data available yet.</div>';
+        return;
+      }
+      
+      const maxCount = Math.max(...interests.map(i => i.count), 1);
+      
+      container.innerHTML = interests.slice(0, 10).map(item => {
+        const percentage = (item.count / maxCount) * 100;
+        return `
+          <div class="interest-item">
+            <div class="interest-label">
+              <span style="font-weight: 600;">${escapeHtml(item.condition)}</span>
+              <span style="color: var(--text-secondary);">${item.count} documents</span>
+            </div>
+            <div class="interest-bar-bg">
+              <div class="interest-bar" style="width: ${percentage}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderClinicalLandscape(landscape) {
+      const container = document.getElementById('clinical-landscape-container');
+      
+      if (Object.keys(landscape).length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 40px;">No study status data available yet.</div>';
+        return;
+      }
+      
+      const colorMap = {
+        'RECRUITING': 'var(--green)',
+        'ACTIVE_NOT_RECRUITING': 'var(--blue)',
+        'COMPLETED': 'var(--text-secondary)',
+        'NOT_YET_RECRUITING': 'var(--amber)'
+      };
+      
+      container.innerHTML = '<div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;">' +
+        Object.entries(landscape).map(([status, data]) => {
+          const color = colorMap[status] || 'var(--text-secondary)';
+          return `
+            <div style="flex: 1; min-width: 150px; text-align: center; padding: 16px; background: var(--bg); border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: 700; color: ${color};">${data.percentage}%</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${escapeHtml(status.replace(/_/g, ' '))}</div>
+              <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">${data.count} studies</div>
+            </div>
+          `;
+        }).join('') +
+        '</div>';
+    }
+
+    function renderKnowledgeBase(kb) {
+      const container = document.getElementById('knowledge-base-container');
+      
+      container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div style="text-align: center; padding: 20px; background: var(--bg); border-radius: 8px;">
+            <div style="font-size: 32px; font-weight: 700; color: var(--amber);">${kb.documents || 0}</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Documents</div>
+          </div>
+          <div style="text-align: center; padding: 20px; background: var(--bg); border-radius: 8px;">
+            <div style="font-size: 32px; font-weight: 700; color: var(--amber);">${kb.chunks || 0}</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Knowledge Chunks</div>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, rgba(108, 74, 182, 0.05), rgba(217, 93, 138, 0.05)); border-radius: 8px; border-left: 3px solid var(--primary);">
+          <div style="font-weight: 600; margin-bottom: 4px;">✨ Vector Search Enabled</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">Semantic search powered by embeddings for precise research discovery</div>
+        </div>
+      `;
+    }
+
+    function renderRecentActivity(activity) {
+      const container = document.getElementById('recent-activity-container');
+      
+      if (activity.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 40px;">No recent research activity.</div>';
+        return;
+      }
+      
+      container.innerHTML = activity.map(item => {
+        const date = new Date(item.saved_at);
+        const timeAgo = getTimeAgo(date);
+        return `
+          <div style="padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 600; color: var(--primary);">${escapeHtml(item.nct_id)}</div>
+              ${item.notes ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${escapeHtml(item.notes.substring(0, 80))}${item.notes.length > 80 ? '...' : ''}</div>` : ''}
+            </div>
+            <div style="font-size: 13px; color: var(--muted); white-space: nowrap; margin-left: 16px;">${timeAgo}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getTimeAgo(date) {
+      const seconds = Math.floor((new Date() - date) / 1000);
+      
+      if (seconds < 60) return 'Just now';
+      if (seconds < 3600) return Math.floor(seconds / 60) + ' min ago';
+      if (seconds < 86400) return Math.floor(seconds / 3600) + ' hr ago';
+      if (seconds < 2592000) return Math.floor(seconds / 86400) + ' days ago';
+      return date.toLocaleDateString();
+    }
+
+    // Forms
+    function setupForms() {
+      document.getElementById('research-form').addEventListener('submit', handleResearchQuestion);
+      document.getElementById('save-form').addEventListener('submit', handleSaveStudy);
+    }
+
+    async function handleResearchQuestion(e) {
       e.preventDefault();
-      const symbol = document.getElementById("symbol").value;
-      resultEl.textContent = "Adding to watchlist...";
-
+      const question = document.getElementById('question').value.trim();
+      
+      if (!question) return;
+      
+      showMessage('Searching health knowledge database...', 'info');
+      disableForm(true);
+      
       try {
-        const resp = await fetch("/watchlist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ symbol }),
+        // Call the new vector search endpoint
+        const response = await fetch('/health/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            query: question,
+            top_k: 10  // Get top 10 most relevant results
+          })
         });
-        const data = await resp.json();
-        if (!resp.ok) {
-          resultEl.textContent = "Error: " + (data.error || resp.statusText);
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          showMessage(data.error || 'An error occurred', 'error');
           return;
         }
-        resultEl.textContent = "Added " + data.symbol + " at price " + data.latest_price;
-        document.getElementById("symbol").value = "";
-        loadWatchlist();
-      } catch (err) {
-        resultEl.textContent = "Request failed: " + err;
+        
+        displayResults(data);
+        clearMessage();
+        
+      } catch (error) {
+        showMessage('Request failed. Please try again.', 'error');
+      } finally {
+        disableForm(false);
       }
-    });
+    }
 
-    watchlistBody.addEventListener("click", async (e) => {
-      const btn = e.target.closest(".delete-btn");
-      if (!btn) return;
+    function displayResults(data) {
+      const container = document.getElementById('results-container');
+      
+      // Check if we have vector search results
+      if (data.results && data.results.length > 0) {
+        const resultsHtml = data.results.map(result => createVectorSearchCard(result)).join('');
+        container.innerHTML = `
+          <div class="card">
+            <div class="card-header">Research Insights — Found ${data.count} relevant studies</div>
+            <div style="padding: 12px 0; color: var(--text-secondary); font-size: 14px;">
+              Results ranked by semantic relevance to: "${escapeHtml(data.query)}"
+            </div>
+            ${resultsHtml}
+          </div>
+        `;
+      } else if (data.response) {
+        // Fallback for old API format
+        container.innerHTML = `
+          <div class="card">
+            <div class="card-header">Research Insights</div>
+            <div class="agent-response">${escapeHtml(data.response)}</div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="card">
+            <div class="card-header">No Results</div>
+            <div class="agent-response">No studies found. Try different search terms.</div>
+          </div>
+        `;
+      }
+    }
 
-      const symbol = btn.dataset.symbol;
-      btn.disabled = true;
-      resultEl.textContent = "Removing " + symbol + "...";
+    function createStudyCard(study) {
+      const statusClass = study.status ? `status-${study.status.toLowerCase().replace(/\s+/g, '-')}` : 'status-completed';
+      
+      return `
+        <div class="study-card">
+          <div class="study-header">
+            <div>
+              <div class="study-title">${escapeHtml(study.title || 'Untitled Study')}</div>
+              <div class="study-meta">
+                <span class="study-meta-item study-nct">${escapeHtml(study.nct_id)}</span>
+                <span class="status-badge ${statusClass}">${escapeHtml(study.status || 'Unknown')}</span>
+                ${study.condition ? `<span class="study-meta-item">${escapeHtml(study.condition)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          ${study.summary ? `<div class="study-summary">${escapeHtml(study.summary)}</div>` : ''}
+          <div class="study-actions">
+            <button class="btn-secondary" onclick="viewStudyDetails('${study.nct_id}')">View Details</button>
+            <button onclick="openSaveModal('${study.nct_id}')">Save to Collection</button>
+          </div>
+        </div>
+      `;
+    }
 
+    function createVectorSearchCard(result) {
+      const statusClass = result.study_status ? `status-${result.study_status.toLowerCase().replace(/\s+/g, '-')}` : 'status-completed';
+      const similarityPercent = (result.similarity * 100).toFixed(1);
+      const similarityClass = result.similarity >= 0.8 ? 'high' : result.similarity >= 0.6 ? 'medium' : 'low';
+      
+      return `
+        <div class="study-card">
+          <div class="study-header">
+            <div style="flex: 1;">
+              <div class="study-title">${escapeHtml(result.title || 'Untitled Study')}</div>
+              <div class="study-meta">
+                <span class="study-meta-item study-nct">${escapeHtml(result.nct_id || 'N/A')}</span>
+                <span class="status-badge ${statusClass}">${escapeHtml(result.study_status || 'Unknown')}</span>
+                ${result.condition ? `<span class="study-meta-item">${escapeHtml(result.condition)}</span>` : ''}
+                ${result.sex ? `<span class="study-meta-item">${escapeHtml(result.sex)}</span>` : ''}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 18px; font-weight: 600; color: var(--primary);">${similarityPercent}%</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">relevance</div>
+            </div>
+          </div>
+          
+          ${result.chunk_text ? `
+            <div style="background: var(--bg); border-left: 3px solid var(--primary); padding: 12px; margin: 12px 0; border-radius: 4px; font-size: 14px; line-height: 1.6;">
+              <div style="font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); font-size: 12px;">RELEVANT EXCERPT:</div>
+              ${escapeHtml(result.chunk_text.substring(0, 300))}${result.chunk_text.length > 300 ? '...' : ''}
+            </div>
+          ` : ''}
+          
+          ${result.summary ? `<div class="study-summary">${escapeHtml(result.summary.substring(0, 200))}${result.summary.length > 200 ? '...' : ''}</div>` : ''}
+          
+          <div style="display: flex; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--text-secondary);">
+            ${result.sponsor ? `<span>🏥 ${escapeHtml(result.sponsor)}</span>` : ''}
+            ${result.age_range ? `<span>👤 ${escapeHtml(result.age_range)}</span>` : ''}
+          </div>
+          
+          <div class="study-actions">
+            <button class="btn-secondary" onclick="viewStudyDetails('${result.nct_id}')">View Full Study</button>
+            <button onclick="openSaveModal('${result.nct_id}')">Save to Collection</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function viewStudyDetails(nctId) {
+      console.log('viewStudyDetails called with NCT ID:', nctId);
+      
+      if (!nctId) {
+        showMessage('Invalid study ID', 'error');
+        return;
+      }
+      
+      showMessage('Loading study details...', 'info');
+      
       try {
-        const resp = await fetch(`/watchlist/${encodeURIComponent(symbol)}`, {
-          method: "DELETE",
-        });
-        const data = await resp.json();
-        if (!resp.ok) {
-          resultEl.textContent = "Error: " + (data.error || resp.statusText);
-          btn.disabled = false;
+        const url = `/api/study/${nctId}`;
+        console.log('Fetching study details from:', url);
+        
+        const response = await fetch(url);
+        const study = await response.json();
+        
+        console.log('Response status:', response.status);
+        console.log('Response data:', study);
+        
+        if (!response.ok) {
+          console.error('Error fetching study:', study.error);
+          showMessage(study.error || 'Could not load study details', 'error');
           return;
         }
-        resultEl.textContent = "Removed " + data.symbol + " from your watchlist.";
-        loadWatchlist();
-      } catch (err) {
-        resultEl.textContent = "Request failed: " + err;
-        btn.disabled = false;
+        
+        displayStudyDetails(study);
+        clearMessage();
+        
+      } catch (error) {
+        console.error('Exception in viewStudyDetails:', error);
+        showMessage('Failed to load study details: ' + error.message, 'error');
       }
-    });
+    }
 
-    loadWatchlist();
+    function displayStudyDetails(study) {
+      const container = document.getElementById('results-container');
+      
+      // Format conditions array
+      const conditionsText = Array.isArray(study.conditions) && study.conditions.length > 0
+        ? study.conditions.join(', ')
+        : (study.condition || 'Not specified');
+      
+      // Format phase array
+      const phaseText = Array.isArray(study.phase) && study.phase.length > 0
+        ? study.phase.join(', ')
+        : 'Not specified';
+      
+      // Format locations array
+      const locationsHtml = Array.isArray(study.locations) && study.locations.length > 0
+        ? `<div style="margin-bottom: 16px;">
+             <strong>📍 Locations:</strong><br>
+             <div style="margin-top: 8px;">${study.locations.slice(0, 5).map(loc => `• ${escapeHtml(loc)}`).join('<br>')}</div>
+             ${study.locations.length > 5 ? `<div style="margin-top: 4px; font-size: 13px; color: var(--text-secondary);">...and ${study.locations.length - 5} more locations</div>` : ''}
+           </div>`
+        : '';
+      
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">Study Details</div>
+          
+          <div class="study-title" style="margin-bottom: 16px; font-size: 18px;">${escapeHtml(study.title || study.official_title || 'Untitled Study')}</div>
+          
+          <div style="margin-bottom: 20px; line-height: 1.8;">
+            <strong>NCT ID:</strong> <a href="${escapeHtml(study.url || 'https://clinicaltrials.gov/study/' + study.nct_id)}" target="_blank" class="study-nct">${escapeHtml(study.nct_id)}</a><br>
+            ${study.status ? `<strong>Status:</strong> <span class="status-badge status-${study.status.toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(study.status)}</span><br>` : ''}
+            ${study.study_type ? `<strong>Study Type:</strong> ${escapeHtml(study.study_type)}<br>` : ''}
+            <strong>Conditions:</strong> ${escapeHtml(conditionsText)}<br>
+            <strong>Phase:</strong> ${escapeHtml(phaseText)}<br>
+            ${study.enrollment ? `<strong>Enrollment:</strong> ${escapeHtml(study.enrollment)} participants<br>` : ''}
+            ${study.sex ? `<strong>Sex:</strong> ${escapeHtml(study.sex)}<br>` : ''}
+            ${study.minimum_age || study.maximum_age ? `<strong>Age Range:</strong> ${escapeHtml(study.minimum_age || 'N/A')} - ${escapeHtml(study.maximum_age || 'N/A')}<br>` : ''}
+            ${study.sponsor ? `<strong>Sponsor:</strong> ${escapeHtml(study.sponsor)}<br>` : ''}
+            ${study.first_posted ? `<strong>First Posted:</strong> ${escapeHtml(study.first_posted)}<br>` : ''}
+            ${study.last_updated ? `<strong>Last Updated:</strong> ${escapeHtml(study.last_updated)}<br>` : ''}
+          </div>
+          
+          ${study.summary ? `
+            <div style="margin-bottom: 20px;">
+              <strong>Summary:</strong><br>
+              <div style="margin-top: 8px; line-height: 1.7; padding: 12px; background: var(--bg); border-radius: 6px;">${escapeHtml(study.summary)}</div>
+            </div>
+          ` : ''}
+          
+          ${study.detailed_description ? `
+            <div style="margin-bottom: 20px;">
+              <strong>Detailed Description:</strong><br>
+              <div style="margin-top: 8px; line-height: 1.7; padding: 12px; background: var(--bg); border-radius: 6px; max-height: 300px; overflow-y: auto;">${escapeHtml(study.detailed_description)}</div>
+            </div>
+          ` : ''}
+          
+          ${locationsHtml}
+          
+          <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button onclick="openSaveModal('${study.nct_id}')">💾 Save to Research Collection</button>
+            <button class="btn-secondary" onclick="window.open('${escapeHtml(study.url || 'https://clinicaltrials.gov/study/' + study.nct_id)}', '_blank')">🔗 View on ClinicalTrials.gov</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Research Collection
+    async function loadResearchCollection() {
+      const container = document.getElementById('collection-container');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      
+      try {
+        const response = await fetch('/api/collection');
+        const collection = await response.json();
+        
+        if (!response.ok) {
+          container.innerHTML = `<div class="message message-error">${collection.error || 'Could not load collection'}</div>`;
+          return;
+        }
+        
+        if (collection.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div style="font-size: 48px; margin-bottom: 16px;">📚</div>
+              <p style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Your research collection is empty</p>
+              <p style="margin-top: 8px; color: var(--text-secondary);">Save studies while exploring research to build your personal collection.</p>
+              <button onclick="switchPage('companion')" style="margin-top: 20px;">Start Researching</button>
+            </div>
+          `;
+          return;
+        }
+        
+        container.innerHTML = collection.map(item => createCollectionCard(item)).join('');
+        
+      } catch (error) {
+        container.innerHTML = '<div class="message message-error">Failed to load collection</div>';
+      }
+    }
+
+    function createCollectionCard(item) {
+      const savedDate = new Date(item.saved_at).toLocaleDateString();
+      const study = item.study || {};
+      
+      return `
+        <div class="study-card">
+          <div class="study-title">${escapeHtml(study.title || item.nct_id)}</div>
+          <div class="study-meta">
+            <span class="study-nct">${escapeHtml(item.nct_id)}</span>
+            <span class="study-meta-item">Saved ${savedDate}</span>
+          </div>
+          ${item.notes ? `<div style="margin: 12px 0; font-size: 14px; font-style: italic;">"${escapeHtml(item.notes)}"</div>` : ''}
+          <div class="study-actions">
+            <button class="btn-secondary" onclick="viewStudyDetails('${item.nct_id}')">View Study</button>
+            <button class="btn-danger" onclick="openRemoveModal('${item.nct_id}')">Remove</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Save modal
+    function openSaveModal(nctId) {
+      document.getElementById('save-nct-id').value = nctId;
+      document.getElementById('save-notes').value = '';
+      document.getElementById('save-modal').classList.add('active');
+    }
+
+    function closeSaveModal() {
+      document.getElementById('save-modal').classList.remove('active');
+    }
+
+    async function handleSaveStudy(e) {
+      e.preventDefault();
+      
+      const nctId = document.getElementById('save-nct-id').value;
+      const notes = document.getElementById('save-notes').value.trim();
+      
+      try {
+        const response = await fetch('/api/collection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nct_id: nctId, notes })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          showMessage(data.error || 'Could not save study', 'error');
+          return;
+        }
+        
+        showMessage(data.message || 'Study saved successfully!', 'success');
+        closeSaveModal();
+        
+      } catch (error) {
+        showMessage('Failed to save study', 'error');
+      }
+    }
+
+    // Remove modal
+    function openRemoveModal(nctId) {
+      document.getElementById('remove-nct-id').value = nctId;
+      document.getElementById('remove-modal').classList.add('active');
+    }
+
+    function closeRemoveModal() {
+      document.getElementById('remove-modal').classList.remove('active');
+    }
+
+    async function confirmRemove() {
+      const nctId = document.getElementById('remove-nct-id').value;
+      
+      try {
+        const response = await fetch(`/api/collection/${nctId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          showMessage(data.error || 'Could not remove study', 'error');
+          return;
+        }
+        
+        showMessage(data.message || 'Study removed', 'success');
+        closeRemoveModal();
+        loadResearchCollection();
+        
+      } catch (error) {
+        showMessage('Failed to remove study', 'error');
+      }
+    }
+
+    // Utilities
+    function showMessage(text, type = 'info') {
+      const container = document.getElementById('message-container');
+      container.innerHTML = `<div class="message message-${type}">${escapeHtml(text)}</div>`;
+    }
+
+    function clearMessage() {
+      document.getElementById('message-container').innerHTML = '';
+    }
+
+    function disableForm(disabled) {
+      document.querySelector('#research-form button').disabled = disabled;
+      document.getElementById('question').disabled = disabled;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
   </script>
 </body>
 </html>
